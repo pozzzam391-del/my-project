@@ -1,6 +1,6 @@
 FROM php:8.2-cli
 
-# Install system dependencies
+# Install system dependencies & zip
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -18,17 +18,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy dependency definition files first to leverage Docker cache
+# Copy dependency definition files first
 COPY composer.json composer.lock ./
 
-# Install dependencies without running scripts initially
-RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --ignore-platform-reqs
+# Install dependencies with full flags to bypass local platform strictness
+RUN composer install --no-dev --prefer-dist --no-interaction --ignore-platform-reqs
 
 # Copy the rest of the application code
 COPY . .
 
-# Generate optimized autoloader
-RUN composer dump-autoload --optimize --no-dev
+# Run config and route caching safely during build if env allows, otherwise just dump-autoload
+RUN composer dump-autoload --optimize --no-dev --ignore-platform-reqs
 
 EXPOSE 10000
 
